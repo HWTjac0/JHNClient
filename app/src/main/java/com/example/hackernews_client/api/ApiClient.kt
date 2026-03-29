@@ -1,53 +1,57 @@
 package com.example.hackernews_client.api
 
+import android.content.Context
 import com.squareup.moshi.Moshi
+import okhttp3.Cache
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import java.io.File
 
 // Api for stories
 interface HNFirebaseService {
-    @GET("v0/item/{id}.json")
+    @GET("item/{id}.json")
     suspend fun getItem(@Path("id") id: Int): HNItem
 
-    @GET("v0/user/{id}.json")
+    @GET("user/{id}.json")
     suspend fun getUser(@Path("id") id: String): HNUser
 
-    @GET("v0/topstories.json")
+    @GET("topstories.json")
     suspend fun getTopStories(): List<Int>
 
-    @GET("v0/newstories.json")
+    @GET("newstories.json")
     suspend fun getNewStories(): List<Int>
 
-    @GET("v0/jobstories.json")
+    @GET("jobstories.json")
     suspend fun getJobStories(): List<Int>
 
-    @GET("v0/updates.json")
+    @GET("updates.json")
     suspend fun getUpdates(): HNUpdates
 
-    @GET("v0/maxitem.json")
+    @GET("maxitem.json")
     suspend fun getMaxItem(): Int
 
 }
 
 // Api for search
 interface HNAlgoliaService {
-    @GET("api/v1/items/{id}")
+    @GET("items/{id}")
     suspend fun getItemWithComments(@Path("id") id: Int): AlgoliaItem
 
-    @GET("api/v1/users/{username}")
+    @GET("users/{username}")
     suspend fun getUser(@Path("username") username: String): AlgoliaUser
 
-    @GET("api/v1/search")
+    @GET("search")
     suspend fun search(
         @Query("query") query: String? = null,
         @Query("tags") tags: String? = null,
         @Query("page") page: Int? = 0
     ): AlgoliaSearchResponse
 
-    @GET("api/v1/search_by_date")
+    @GET("search_by_date")
     suspend fun searchByDate(
         @Query("query") query: String? = null,
         @Query("tags") tags: String? = null,
@@ -56,14 +60,34 @@ interface HNAlgoliaService {
 }
 
 object ApiClient {
+    private var okHttpClient: OkHttpClient? = null
+
+    fun init(context: Context) {
+        val cacheSize = 10 * 1024 * 1024L // 10 MB
+        val cache = Cache(File(context.cacheDir, "http_cache"), cacheSize)
+        
+        okHttpClient = OkHttpClient.Builder()
+            .cache(cache)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                chain.proceed(request)
+            }
+            .build()
+    }
+
     fun getClient(baseUrl: String): Retrofit {
         val moshi = Moshi.Builder().build()
-        val retrofit = Retrofit.Builder()
+        val builder = Retrofit.Builder()
             .baseUrl(baseUrl)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .build()
-        return retrofit
+        
+        okHttpClient?.let {
+            builder.client(it)
+        }
+        
+        return builder.build()
     }
+
     inline fun <reified T> createService(baseUrl: String): T {
         return getClient(baseUrl).create(T::class.java)
     }
@@ -76,7 +100,7 @@ object FirebaseHN {
     }
 }
 object AlgoliaHN {
-    private const val BASE_URL = "http://hn.algolia.com/api/v1/"
+    private const val BASE_URL = "https://hn.algolia.com/api/v1/"
     val service: HNAlgoliaService by lazy {
         ApiClient.createService<HNAlgoliaService>(BASE_URL)
     }

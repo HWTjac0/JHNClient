@@ -4,6 +4,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -84,8 +85,7 @@ fun NavigationRoot(
         }
     ) { innerPadding ->
         NavDisplay(
-            modifier = Modifier
-                .padding(innerPadding),
+            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
             backStack = backStack,
             onBack = {backStack.removeLastOrNull()},
             entryProvider = entryProvider {

@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.hackernews_client.ui.theme.AppTheme
+import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
 
 @Composable
 fun SettingsScreen(
@@ -31,59 +32,12 @@ fun SettingsScreen(
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-
-        ThemeOption(
-            theme = AppTheme.DEFAULT,
-            selected = currentTheme == AppTheme.DEFAULT,
-            onClick = { onThemeChange(AppTheme.DEFAULT) },
-            label = "Default (System)"
-        )
-
-        ThemeOption(
-            theme = AppTheme.HACKER_NEWS,
-            selected = currentTheme == AppTheme.HACKER_NEWS,
-            onClick = { onThemeChange(AppTheme.HACKER_NEWS) },
-            label = "Hacker News (Orange)"
-        )
-
-        ThemeOption(
-            theme = AppTheme.DEEP_BLUE,
-            selected = currentTheme == AppTheme.DEEP_BLUE,
-            onClick = { onThemeChange(AppTheme.DEEP_BLUE) },
-            label = "Deep Blue"
-        )
-
-        ThemeOption(
-            theme = AppTheme.KANAGAWA,
-            selected = currentTheme == AppTheme.KANAGAWA,
-            onClick = { onThemeChange(AppTheme.KANAGAWA) },
-            label = "Kanagawa (Dark)"
-        )
-    }
-}
-
-@Composable
-fun ThemeOption(
-    theme: AppTheme,
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 8.dp)
+        ExposedDropdownMenu(
+            options = AppTheme.entries.map { it.name },
+            selectedIndex = AppTheme.entries.indexOf(currentTheme),
+            onSelected = { index ->
+                onThemeChange(AppTheme.entries[index])
+            }
         )
     }
 }

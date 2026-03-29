@@ -37,14 +37,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.hackernews_client.api.AlgoliaHN
 import com.example.hackernews_client.api.AlgoliaHit
+import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import java.net.URL
+
+enum class SearchSort(val label: String) {
+    POPULARITY("Popularity"),
+    DATE("Date")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(modifier: Modifier = Modifier) {
     var query by remember { mutableStateOf("") }
+    var selectedSort by remember { mutableStateOf(SearchSort.POPULARITY) }
+    
     val hits = remember { mutableStateListOf<AlgoliaHit>() }
     var isLoading by remember { mutableStateOf(false) }
     var currentPage by remember { mutableStateOf(0) }
@@ -52,7 +60,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
 
     // Debounced search
-    LaunchedEffect(query) {
+    LaunchedEffect(query, selectedSort) {
         if (query.isBlank()) {
             hits.clear()
             return@LaunchedEffect
@@ -64,7 +72,11 @@ fun SearchScreen(modifier: Modifier = Modifier) {
         hits.clear()
         
         try {
-            val response = AlgoliaHN.service.search(query = query, page = 0)
+            val response = if (selectedSort == SearchSort.POPULARITY) {
+                AlgoliaHN.service.search(query = query, page = 0)
+            } else {
+                AlgoliaHN.service.searchByDate(query = query, page = 0)
+            }
             hits.addAll(response.hits)
             hasMorePages = response.page < response.nbPages - 1
             currentPage = 0
@@ -87,7 +99,11 @@ fun SearchScreen(modifier: Modifier = Modifier) {
             isLoading = true
             val nextPage = currentPage + 1
             try {
-                val response = AlgoliaHN.service.search(query = query, page = nextPage)
+                val response = if (selectedSort == SearchSort.POPULARITY) {
+                    AlgoliaHN.service.search(query = query, page = nextPage)
+                } else {
+                    AlgoliaHN.service.searchByDate(query = query, page = nextPage)
+                }
                 hits.addAll(response.hits)
                 currentPage = nextPage
                 hasMorePages = response.page < response.nbPages - 1
@@ -108,7 +124,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
                     TextField(
                         value = query,
                         onValueChange = { query = it },
-                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
                         placeholder = { Text("Search stories...") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
@@ -119,6 +135,16 @@ fun SearchScreen(modifier: Modifier = Modifier) {
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                         )
+                    )
+                },
+                actions = {
+                    ExposedDropdownMenu(
+                        options = SearchSort.entries.map { it.label },
+                        selectedIndex = SearchSort.entries.indexOf(selectedSort),
+                        onSelected = { index ->
+                            selectedSort = SearchSort.entries[index]
+                        },
+                        modifier = Modifier.width(150.dp)
                     )
                 }
             )

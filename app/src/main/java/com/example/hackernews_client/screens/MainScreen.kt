@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -154,8 +155,8 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     state = listState,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(stories, key = { it.id }) { story ->
-                        StoryItem(story)
+                    itemsIndexed(stories, key = { _ , story -> story.id } ) { index, story ->
+                        StoryItem(story, index)
                     }
 
                     if (isLoading) {
@@ -177,7 +178,7 @@ fun MainScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun StoryItem(story: HNItem) {
+fun StoryItem(story: HNItem, index: Int) {
     val storyUrl = remember(story.url) {
         try {
             URL(story.url).host
@@ -190,10 +191,18 @@ fun StoryItem(story: HNItem) {
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(horizontal = 10.dp, vertical = 16.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column (
+                modifier = Modifier.width(34.dp)
+            ) {
+                Text(
+                    text = "${index + 1}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -208,7 +217,7 @@ fun StoryItem(story: HNItem) {
                 )
             }
             Column(
-                modifier = Modifier.width(100.dp),
+                modifier = Modifier.width(75.dp),
                 horizontalAlignment = Alignment.End
             ) {
                 Text(

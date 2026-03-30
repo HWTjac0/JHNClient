@@ -1,6 +1,5 @@
 package com.example.hackernews_client.screens
 
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,21 +24,18 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.hackernews_client.api.AlgoliaHN
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hackernews_client.api.AlgoliaHit
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
+import com.example.hackernews_client.viemodels.SearchViewModel
 import java.net.URL
 
 enum class SearchSort(val label: String) {
@@ -49,71 +45,27 @@ enum class SearchSort(val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(modifier: Modifier = Modifier) {
-    var query by remember { mutableStateOf("") }
-    var selectedSort by remember { mutableStateOf(SearchSort.POPULARITY) }
+fun SearchScreen(
+    modifier: Modifier = Modifier,
+    viewModel: SearchViewModel = viewModel()
+) {
+    val query by viewModel.query.collectAsState()
+    val hits by viewModel.hits.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val selectedSort by viewModel.selectedSort.collectAsState()
     
-    val hits = remember { mutableStateListOf<AlgoliaHit>() }
-    var isLoading by remember { mutableStateOf(false) }
-    var currentPage by remember { mutableStateOf(0) }
-    var hasMorePages by remember { mutableStateOf(true) }
     val listState = rememberLazyListState()
 
-    // Debounced search
-    LaunchedEffect(query, selectedSort) {
-        if (query.isBlank()) {
-            hits.clear()
-            return@LaunchedEffect
-        }
-        
-        delay(500) // Debounce 500ms
-        isLoading = true
-        currentPage = 0
-        hits.clear()
-        
-        try {
-            val response = if (selectedSort == SearchSort.POPULARITY) {
-                AlgoliaHN.service.search(query = query, page = 0)
-            } else {
-                AlgoliaHN.service.searchByDate(query = query, page = 0)
-            }
-            hits.addAll(response.hits)
-            hasMorePages = response.page < response.nbPages - 1
-            currentPage = 0
-        } catch (e: Exception) {
-            Log.e("SearchScreen", "Search error", e)
-        } finally {
-            isLoading = false
-        }
-    }
-
-    val shouldLoadMore by remember {
+    val shouldLoadMore = remember {
         derivedStateOf {
             val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisibleItemIndex >= hits.size - 5 && !isLoading && hasMorePages && hits.isNotEmpty()
+            lastVisibleItemIndex >= hits.size - 5
         }
     }
 
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) {
-            isLoading = true
-            val nextPage = currentPage + 1
-            try {
-                val response = if (selectedSort == SearchSort.POPULARITY) {
-                    AlgoliaHN.service.search(query = query, page = nextPage)
-                } else {
-                    AlgoliaHN.service.searchByDate(query = query, page = nextPage)
-                }
-                hits.addAll(response.hits)
-                currentPage = nextPage
-                hasMorePages = response.page < response.nbPages - 1
-            } catch (e: CancellationException) {
-                // Ignore
-            } catch (e: Exception) {
-                Log.e("SearchScreen", "Load more error", e)
-            } finally {
-                isLoading = false
-            }
+    LaunchedEffect(shouldLoadMore.value) {
+        if (shouldLoadMore.value) {
+            viewModel.loadMore()
         }
     }
 
@@ -123,7 +75,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
                 title = {
                     TextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = { viewModel.onQueryChanged(it) },
                         modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
                         placeholder = { Text("Search stories...") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
@@ -142,7 +94,7 @@ fun SearchScreen(modifier: Modifier = Modifier) {
                         options = SearchSort.entries.map { it.label },
                         selectedIndex = SearchSort.entries.indexOf(selectedSort),
                         onSelected = { index ->
-                            selectedSort = SearchSort.entries[index]
+                            viewModel.onSortChanged(SearchSort.entries[index])
                         },
                         modifier = Modifier.width(150.dp)
                     )

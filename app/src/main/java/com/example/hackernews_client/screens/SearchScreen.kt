@@ -1,5 +1,6 @@
 package com.example.hackernews_client.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ enum class SearchSort(val label: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
+    onStoryClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SearchViewModel = viewModel()
 ) {
@@ -137,7 +139,12 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(hits, key = { _, hit -> hit.objectID }) { _, hit ->
-                            SearchHitItem(hit)
+                            SearchHitItem(
+                                hit = hit,
+                                onClick = { 
+                                    hit.objectID.toIntOrNull()?.let { onStoryClick(it) }
+                                }
+                            )
                         }
 
                         if (isLoadingMore) {
@@ -160,7 +167,10 @@ fun SearchScreen(
 }
 
 @Composable
-fun SearchHitItem(hit: AlgoliaHit) {
+fun SearchHitItem(
+    hit: AlgoliaHit,
+    onClick: () -> Unit
+) {
     val host = remember(hit.url) {
         try {
             URL(hit.url).host
@@ -170,7 +180,9 @@ fun SearchHitItem(hit: AlgoliaHit) {
     }
     
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier

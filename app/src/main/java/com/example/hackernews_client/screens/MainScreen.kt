@@ -1,5 +1,6 @@
 package com.example.hackernews_client.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,6 +44,7 @@ enum class StoryType(val label: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    onStoryClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = viewModel()
 ) {
@@ -107,7 +109,7 @@ fun MainScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(stories, key = { _, story -> story.id }) { index, story ->
-                            StoryItem(story, index)
+                            StoryItem(story, index, onClick = { onStoryClick(story.id)})
                         }
 
                         if (isLoadingMore) {
@@ -130,7 +132,11 @@ fun MainScreen(
 }
 
 @Composable
-fun StoryItem(story: HNItem, index: Int) {
+fun StoryItem(
+    story: HNItem,
+    index: Int,
+    onClick: () -> Unit
+) {
     val storyUrl = remember(story.url) {
         try {
             URL(story.url).host
@@ -139,7 +145,9 @@ fun StoryItem(story: HNItem, index: Int) {
         }
     }
     Column(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier

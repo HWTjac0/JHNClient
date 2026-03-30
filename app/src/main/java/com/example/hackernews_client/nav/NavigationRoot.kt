@@ -27,6 +27,7 @@ import com.example.hackernews_client.screens.MainScreen
 import com.example.hackernews_client.screens.SavedScreen
 import com.example.hackernews_client.screens.SearchScreen
 import com.example.hackernews_client.screens.SettingsScreen
+import com.example.hackernews_client.screens.StoryDetailScreen
 import com.example.hackernews_client.ui.theme.AppTheme
 import kotlinx.serialization.Serializable
 
@@ -72,13 +73,19 @@ fun NavigationRoot(
 ) {
     val backStack = rememberNavBackStack(Screen.Main)
     val destinations = listOf<Screen>(Screen.Main, Screen.Search, Screen.Saved, Screen.Settings)
+
+    val showBottomBar = backStack.last() in destinations
     Scaffold(
         modifier = modifier,
         bottomBar = {
+            if(!showBottomBar) {
+                return@Scaffold
+            }
             AppNavigationBar(
                 selectedKey = backStack.last(),
                 destinations = destinations,
                 onSelected = {selectedScreen ->
+                    backStack.clear()
                     backStack.add(selectedScreen)
                 }
             )
@@ -89,14 +96,33 @@ fun NavigationRoot(
             backStack = backStack,
             onBack = {backStack.removeLastOrNull()},
             entryProvider = entryProvider {
-                entry<Screen.Main> { MainScreen() }
-                entry<Screen.Search> { SearchScreen() }
+                entry<Screen.Main> {
+                    MainScreen(
+                        onStoryClick = { storyId ->
+                            backStack.add(Screen.StoryDetail(storyId))
+                        }
+                    )
+                }
+                entry<Screen.Search> {
+                    SearchScreen(
+                        onStoryClick = { storyId ->
+                            backStack.add(Screen.StoryDetail(storyId))
+                        }
+                    )
+                }
                 entry<Screen.Saved> { SavedScreen() }
                 entry<Screen.Settings> { 
                     SettingsScreen(
                         currentTheme = currentTheme,
                         onThemeChange = onThemeChange
                     ) 
+                }
+                entry<Screen.StoryDetail> {
+                    StoryDetailScreen(
+                        storyId = it.itemId,
+                        onBack = {backStack.removeLastOrNull()},
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             },
             transitionSpec = {
@@ -119,3 +145,4 @@ fun NavigationRoot(
     }
 
 }
+

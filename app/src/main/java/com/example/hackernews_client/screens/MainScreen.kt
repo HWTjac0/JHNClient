@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hackernews_client.api.HNItem
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
+import com.example.hackernews_client.viemodels.MainUiState
 import com.example.hackernews_client.viemodels.MainViewModel
 import java.net.URL
 
@@ -44,25 +46,11 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = viewModel()
 ) {
-    val stories by viewModel.stories.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val selectedType by viewModel.selectedType.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isInitialLoading by viewModel.isInitialLoading.collectAsState()
+    val isLoadingMore by viewModel.isLoading.collectAsState()
     
     val listState = rememberLazyListState()
-
-    val shouldLoadMore = remember {
-        derivedStateOf {
-            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisibleItemIndex >= stories.size - 5
-        }
-    }
-
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value) {
-            viewModel.loadMoreStories()
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -80,26 +68,58 @@ fun MainScreen(
         }
     ) { padding ->
         Box(modifier = modifier.fillMaxSize().padding(padding)) {
-            if (isInitialLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(stories, key = { _, story -> story.id }) { index, story ->
-                        StoryItem(story, index)
+            when (val state = uiState) {
+                is MainUiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is MainUiState.Error -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        Button(
+                            onClick = { viewModel.retry() },
+                            modifier = Modifier.padding(top = 16.dp)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                is MainUiState.Success -> {
+                    val stories = state.stories
+                    
+                    val shouldLoadMore = remember {
+                        derivedStateOf {
+                            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                            lastVisibleItemIndex >= stories.size - 5
+                        }
                     }
 
-                    if (isLoading) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
+                    LaunchedEffect(shouldLoadMore.value) {
+                        if (shouldLoadMore.value) {
+                            viewModel.loadMoreStories()
+                        }
+                    }
+
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        itemsIndexed(stories, key = { _, story -> story.id }) { index, story ->
+                            StoryItem(story, index)
+                        }
+
+                        if (isLoadingMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
                             }
                         }
                     }

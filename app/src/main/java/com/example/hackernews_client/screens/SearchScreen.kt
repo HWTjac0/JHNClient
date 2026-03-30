@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hackernews_client.api.AlgoliaHit
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
+import com.example.hackernews_client.viemodels.SearchUiState
 import com.example.hackernews_client.viemodels.SearchViewModel
 import java.net.URL
 
@@ -50,24 +52,11 @@ fun SearchScreen(
     viewModel: SearchViewModel = viewModel()
 ) {
     val query by viewModel.query.collectAsState()
-    val hits by viewModel.hits.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
     val selectedSort by viewModel.selectedSort.collectAsState()
     
     val listState = rememberLazyListState()
-
-    val shouldLoadMore = remember {
-        derivedStateOf {
-            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisibleItemIndex >= hits.size - 5
-        }
-    }
-
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value) {
-            viewModel.loadMore()
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -103,32 +92,64 @@ fun SearchScreen(
         }
     ) { padding ->
         Box(modifier = modifier.fillMaxSize().padding(padding)) {
-            if (isLoading && hits.isEmpty()) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (hits.isEmpty() && query.isNotEmpty() && !isLoading) {
-                Text(
-                    text = "No results found for \"$query\"",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(hits, key = { _, hit -> hit.objectID }) { _, hit ->
-                        SearchHitItem(hit)
+            when (val state = uiState) {
+                is SearchUiState.Empty -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Type something to search", style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                is SearchUiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is SearchUiState.Error -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        if (!state.message.contains("No results")) {
+                            Button(
+                                onClick = { viewModel.retry() },
+                                modifier = Modifier.padding(top = 16.dp)
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                    }
+                }
+                is SearchUiState.Success -> {
+                    val hits = state.hits
+                    val shouldLoadMore = remember {
+                        derivedStateOf {
+                            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                            lastVisibleItemIndex >= hits.size - 5
+                        }
                     }
 
-                    if (isLoading && hits.isNotEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
+                    LaunchedEffect(shouldLoadMore.value) {
+                        if (shouldLoadMore.value) {
+                            viewModel.loadMore()
+                        }
+                    }
+
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        itemsIndexed(hits, key = { _, hit -> hit.objectID }) { _, hit ->
+                            SearchHitItem(hit)
+                        }
+
+                        if (isLoadingMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
                             }
                         }
                     }

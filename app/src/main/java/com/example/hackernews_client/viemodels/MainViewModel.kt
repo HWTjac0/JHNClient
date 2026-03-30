@@ -13,7 +13,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+sealed interface MainUiState {
+    object Loading : MainUiState
+    data class Success(val stories: List<HNItem>) : MainUiState
+    data class Error(val message: String) : MainUiState
+}
+
 class MainViewModel : ViewModel() {
+    private val _uiState = MutableStateFlow<MainUiState>(MainUiState.Loading)
+    val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+    
     private val _selectedType = MutableStateFlow(StoryType.TOP)
     val selectedType: StateFlow<StoryType> = _selectedType.asStateFlow()
 
@@ -40,8 +49,13 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun retry() {
+        loadInitialStories()
+    }
+
     private fun loadInitialStories() {
         viewModelScope.launch {
+            _uiState.value = MainUiState.Loading
             _isInitialLoading.value = true
             _stories.value = emptyList()
             allStoryIds = emptyList()
@@ -58,8 +72,10 @@ class MainViewModel : ViewModel() {
                     }
                 }.awaitAll().filterNotNull()
                 _stories.value = loadedStories
+                _uiState.value = MainUiState.Success(loadedStories)
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Initial load error", e)
+                _uiState.value = MainUiState.Error("Error loading stories. Please check your connection.")
             } finally {
                 _isInitialLoading.value = false
             }
@@ -79,7 +95,9 @@ class MainViewModel : ViewModel() {
                         try { FirebaseHN.service.getItem(id) } catch (e: Exception) { null }
                     }
                 }.awaitAll().filterNotNull()
-                _stories.value += loadedStories
+                val updatedStories = _stories.value + loadedStories
+                _stories.value = updatedStories
+                _uiState.value = MainUiState.Success(updatedStories)
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error loading more stories", e)
             } finally {

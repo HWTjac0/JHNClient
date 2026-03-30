@@ -13,7 +13,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+sealed interface SearchUiState {
+    object Empty : SearchUiState
+    object Loading : SearchUiState
+    data class Success(val hits: List<AlgoliaHit>) : SearchUiState
+    data class Error(val message: String) : SearchUiState
+}
+
 class SearchViewModel : ViewModel() {
+    private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Empty)
+    val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
@@ -23,8 +33,8 @@ class SearchViewModel : ViewModel() {
     private val _hits = MutableStateFlow<List<AlgoliaHit>>(emptyList())
     val hits: StateFlow<List<AlgoliaHit>> = _hits.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _isLoadingMore = MutableStateFlow(false)
+    val isLoadingMore: StateFlow<Boolean> = _isLoadingMore.asStateFlow()
 
     private var currentPage = 0
     private var hasMorePages = true
@@ -42,16 +52,21 @@ class SearchViewModel : ViewModel() {
         }
     }
 
+    fun retry() {
+        search()
+    }
+
     private fun search() {
         searchJob?.cancel()
         if (_query.value.isBlank()) {
             _hits.value = emptyList()
+            _uiState.value = SearchUiState.Empty
             return
         }
 
         searchJob = viewModelScope.launch {
             delay(500)
-            _isLoading.value = true
+            _uiState.value = SearchUiState.Loading
             currentPage = 0
             _hits.value = emptyList()
             try {
@@ -61,20 +76,24 @@ class SearchViewModel : ViewModel() {
                     AlgoliaHN.service.searchByDate(query = _query.value, page = 0)
                 }
                 _hits.value = response.hits
+                if (response.hits.isEmpty()) {
+                    _uiState.value = SearchUiState.Error("No results found for \"${_query.value}\"")
+                } else {
+                    _uiState.value = SearchUiState.Success(response.hits)
+                }
                 hasMorePages = response.page < response.nbPages - 1
             } catch (e: Exception) {
                 Log.e("SearchViewModel", "Search error", e)
-            } finally {
-                _isLoading.value = false
+                _uiState.value = SearchUiState.Error("An error occurred during search")
             }
         }
     }
 
     fun loadMore() {
-        if (_isLoading.value || !hasMorePages || _query.value.isBlank()) return
+        if (_isLoadingMore.value || !hasMorePages || _query.value.isBlank()) return
 
         viewModelScope.launch {
-            _isLoading.value = true
+            _isLoadingMore.value = true
             val nextPage = currentPage + 1
             try {
                 val response = if (_selectedSort.value == SearchSort.POPULARITY) {
@@ -83,12 +102,13 @@ class SearchViewModel : ViewModel() {
                     AlgoliaHN.service.searchByDate(query = _query.value, page = nextPage)
                 }
                 _hits.value += response.hits
+                _uiState.value = SearchUiState.Success(_hits.value)
                 currentPage = nextPage
                 hasMorePages = response.page < response.nbPages - 1
             } catch (e: Exception) {
                 Log.e("SearchViewModel", "Load more error", e)
             } finally {
-                _isLoading.value = false
+                _isLoadingMore.value = false
             }
         }
     }

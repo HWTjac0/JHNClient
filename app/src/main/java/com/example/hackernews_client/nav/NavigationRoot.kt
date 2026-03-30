@@ -1,5 +1,6 @@
 package com.example.hackernews_client.nav
 
+import android.util.Log
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -14,9 +15,11 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation3.runtime.NavKey
@@ -75,6 +78,8 @@ fun NavigationRoot(
     val destinations = listOf<Screen>(Screen.Main, Screen.Search, Screen.Saved, Screen.Settings)
 
     val showBottomBar = backStack.last() in destinations
+    var previousScreen by remember { mutableStateOf(backStack.last()) }
+    val currentScreen = backStack.last()
     Scaffold(
         modifier = modifier,
         bottomBar = {
@@ -85,6 +90,7 @@ fun NavigationRoot(
                 selectedKey = backStack.last(),
                 destinations = destinations,
                 onSelected = {selectedScreen ->
+                    previousScreen = currentScreen
                     backStack.clear()
                     backStack.add(selectedScreen)
                 }
@@ -127,8 +133,17 @@ fun NavigationRoot(
             },
             transitionSpec = {
                 // Slide in from right when navigating forward
-                slideInHorizontally(initialOffsetX = { it }) togetherWith
+                Log.d("NavigationRoot", "previousScreen: $previousScreen, currentScreen: $currentScreen")
+                if (
+                    currentScreen in destinations &&
+                    destinations.indexOf(previousScreen) > destinations.indexOf(backStack.last())
+                    ) {
+                    slideInHorizontally(initialOffsetX = { -it }) togetherWith
+                            slideOutHorizontally(targetOffsetX = { it })
+                } else {
+                    slideInHorizontally(initialOffsetX = { it }) togetherWith
                         slideOutHorizontally(targetOffsetX = { -it })
+                }
             },
             popTransitionSpec = {
                 // Slide in from left when navigating back

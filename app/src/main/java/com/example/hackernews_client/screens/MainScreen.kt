@@ -1,5 +1,6 @@
 package com.example.hackernews_client.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -99,7 +100,7 @@ fun MainScreen(
                 is MainUiState.Success -> {
                     val stories = state.stories
                     
-                    val shouldLoadMore = remember {
+                    val shouldLoadMore = remember(stories) {
                         derivedStateOf {
                             val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
                             lastVisibleItemIndex >= stories.size - 5

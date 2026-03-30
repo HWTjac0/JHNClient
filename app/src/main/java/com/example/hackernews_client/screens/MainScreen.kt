@@ -1,5 +1,6 @@
 package com.example.hackernews_client.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,14 +12,20 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hackernews_client.api.HNItem
@@ -109,7 +117,42 @@ fun MainScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(stories, key = { _, story -> story.id }) { index, story ->
-                            StoryItem(story, index, onClick = { onStoryClick(story.id)})
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.StartToEnd) {
+                                        // Tutaj można dodać akcję 'like'
+                                    }
+                                    false // Zawsze zwracaj false, aby element wrócił na miejsce
+                                }
+                            )
+                            
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromEndToStart = false, // Wyłącz swipe w lewo
+                                backgroundContent = {
+                                    val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd)
+                                        MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(color)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
+                                            Icon(Icons.Default.Favorite, contentDescription = "Like")
+                                        }
+                                    }
+                                }
+                            ) {
+                                StoryItem(
+                                    story = story, 
+                                    index = index, 
+                                    onClick = { onStoryClick(story.id)},
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                )
+                            }
                         }
 
                         if (isLoadingMore) {
@@ -135,7 +178,8 @@ fun MainScreen(
 fun StoryItem(
     story: HNItem,
     index: Int,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val storyUrl = remember(story.url) {
         try {
@@ -145,7 +189,7 @@ fun StoryItem(
         }
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() }
     ) {

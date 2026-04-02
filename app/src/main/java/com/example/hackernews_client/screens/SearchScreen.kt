@@ -1,6 +1,7 @@
 package com.example.hackernews_client.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -25,9 +24,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -35,9 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.example.hackernews_client.api.AlgoliaHit
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
-import com.example.hackernews_client.viemodels.SearchUiState
 import com.example.hackernews_client.viemodels.SearchViewModel
 import java.net.URL
 
@@ -54,11 +53,8 @@ fun SearchScreen(
     viewModel: SearchViewModel = viewModel()
 ) {
     val query by viewModel.query.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
-    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
+    val items = viewModel.searchResults.collectAsLazyPagingItems()
     val selectedSort by viewModel.selectedSort.collectAsState()
-    
-    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -67,7 +63,9 @@ fun SearchScreen(
                     TextField(
                         value = query,
                         onValueChange = { viewModel.onQueryChanged(it) },
-                        modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 8.dp),
                         placeholder = { Text("Search stories...") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         singleLine = true,
@@ -93,69 +91,96 @@ fun SearchScreen(
             )
         }
     ) { padding ->
-        Box(modifier = modifier.fillMaxSize().padding(padding)) {
-            when (val state = uiState) {
-                is SearchUiState.Empty -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "Type something to search", style = MaterialTheme.typography.bodyLarge)
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            if (query.isBlank()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "Type something to search", style = MaterialTheme.typography.bodyLarge)
+                }
+            } else {
+                when (val refreshState = items.loadState.refresh) {
+                    is LoadState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     }
-                }
-                is SearchUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is SearchUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                        if (!state.message.contains("No results")) {
+
+                    is LoadState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = refreshState.error.localizedMessage ?: "An error occurred",
+                                color = MaterialTheme.colorScheme.error
+                            )
                             Button(
-                                onClick = { viewModel.retry() },
+                                onClick = { items.retry() },
                                 modifier = Modifier.padding(top = 16.dp)
                             ) {
                                 Text("Retry")
                             }
                         }
                     }
-                }
-                is SearchUiState.Success -> {
-                    val hits = state.hits
-                    val shouldLoadMore = remember {
-                        derivedStateOf {
-                            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-                            lastVisibleItemIndex >= hits.size - 5
-                        }
-                    }
 
-                    LaunchedEffect(shouldLoadMore.value) {
-                        if (shouldLoadMore.value) {
-                            viewModel.loadMore()
-                        }
-                    }
-
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        itemsIndexed(hits, key = { _, hit -> hit.objectID }) { _, hit ->
-                            SearchHitItem(
-                                hit = hit,
-                                onClick = { 
-                                    hit.objectID.toIntOrNull()?.let { onStoryClick(it) }
+                    is LoadState.NotLoading -> {
+                        if (items.itemCount == 0) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(text = "No results found for \"$query\"")
+                            }
+                        } else {
+                            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                items(
+                                    count = items.itemCount,
+                                    key = items.itemKey { it.objectID }
+                                ) { index ->
+                                    val hit = items[index]
+                                    if (hit != null) {
+                                        SearchHitItem(
+                                            hit = hit,
+                                            onClick = {
+                                                hit.objectID.toIntOrNull()?.let { onStoryClick(it) }
+                                            }
+                                        )
+                                    }
                                 }
-                            )
-                        }
 
-                        if (isLoadingMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
+                                when (val appendState = items.loadState.append) {
+                                    is LoadState.Loading -> {
+                                        item {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator()
+                                            }
+                                        }
+                                    }
+
+                                    is LoadState.Error -> {
+                                        item {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(16.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(
+                                                    text = appendState.error.localizedMessage
+                                                        ?: "Error loading more",
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                                Button(onClick = { items.retry() }) {
+                                                    Text("Retry")
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    else -> {}
                                 }
                             }
                         }
@@ -178,7 +203,7 @@ fun SearchHitItem(
             ""
         }
     }
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()

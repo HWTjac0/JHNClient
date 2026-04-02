@@ -119,11 +119,41 @@ fun MainScreen(
                         ) { index ->
                             val story = items[index]
                             if (story != null) {
-                                StoryItem(
-                                    story = story,
-                                    index = index,
-                                    onClick = { onStoryClick(story.id) }
+                                val dismissState = rememberSwipeToDismissBoxState(
+                                    confirmValueChange = { value ->
+                                        if (value == SwipeToDismissBoxValue.StartToEnd) {
+                                        }
+                                        false
+                                    }
                                 )
+
+                                SwipeToDismissBox(
+                                    state = dismissState,
+                                    enableDismissFromEndToStart = false,
+                                    backgroundContent = {
+                                        val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd)
+                                            MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(color)
+                                                .padding(horizontal = 20.dp),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
+                                                Icon(Icons.Default.Favorite, contentDescription = "Like")
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    StoryItem(
+                                        story = story,
+                                        index = index,
+                                        onClick = { onStoryClick(story.id) },
+                                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                    )
+                                }
                             }
                         }
 

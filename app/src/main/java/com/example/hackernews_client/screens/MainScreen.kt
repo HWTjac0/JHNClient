@@ -3,6 +3,7 @@ package com.example.hackernews_client.screens
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,9 +39,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.example.hackernews_client.api.HNItem
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
-import com.example.hackernews_client.viemodels.MainUiState
 import com.example.hackernews_client.viemodels.MainViewModel
 import java.net.URL
 
@@ -57,11 +60,8 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val items = viewModel.stories.collectAsLazyPagingItems()
     val selectedType by viewModel.selectedType.collectAsState()
-    val isLoadingMore by viewModel.isLoading.collectAsState()
-    
-    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -78,95 +78,94 @@ fun MainScreen(
             )
         }
     ) { padding ->
-        Box(modifier = modifier.fillMaxSize().padding(padding)) {
-            when (val state = uiState) {
-                is MainUiState.Loading -> {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            when (items.loadState.refresh) {
+                is LoadState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-                is MainUiState.Error -> {
+
+                is LoadState.Error -> {
+                    val error = items.loadState.refresh as LoadState.Error
                     Column(
                         modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = error.error.localizedMessage ?: "Unknown error",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
                         Button(
-                            onClick = { viewModel.retry() },
+                            onClick = { items.retry() },
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
                             Text("Retry")
                         }
                     }
                 }
-                is MainUiState.Success -> {
-                    val stories = state.stories
-                    
-                    val shouldLoadMore = remember(stories) {
-                        derivedStateOf {
-                            val lastVisibleItemIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-                            lastVisibleItemIndex >= stories.size - 5
-                        }
-                    }
 
-                    LaunchedEffect(shouldLoadMore.value) {
-                        if (shouldLoadMore.value) {
-                            viewModel.loadMoreStories()
-                        }
-                    }
-
+                else -> {
                     LazyColumn(
-                        state = listState,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        itemsIndexed(stories, key = { _, story -> story.id }) { index, story ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.StartToEnd) {
-                                        // Tutaj można dodać akcję 'like'
-                                    }
-                                    false // Zawsze zwracaj false, aby element wrócił na miejsce
-                                }
-                            )
-                            
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromEndToStart = false, // Wyłącz swipe w lewo
-                                backgroundContent = {
-                                    val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd)
-                                        MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-                                    
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(color)
-                                            .padding(horizontal = 20.dp),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        if (dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd) {
-                                            Icon(Icons.Default.Favorite, contentDescription = "Like")
-                                        }
-                                    }
-                                }
-                            ) {
+                        items(
+                            count = items.itemCount,
+                            key = items.itemKey { it.id },
+                        ) { index ->
+                            val story = items[index]
+                            if (story != null) {
                                 StoryItem(
-                                    story = story, 
-                                    index = index, 
-                                    onClick = { onStoryClick(story.id)},
-                                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                    story = story,
+                                    index = index,
+                                    onClick = { onStoryClick(story.id) }
                                 )
                             }
                         }
 
-                        if (isLoadingMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
+                        when (val state = items.loadState.append) {
+                            is LoadState.Loading -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
                                 }
                             }
+
+                            is LoadState.Error -> {
+                                item {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = state.error.localizedMessage ?: "Error loading more",
+                                            color = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        )
+                                        Button(
+                                            onClick = { items.retry() },
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        ) {
+                                            Text("Retry")
+                                        }
+                                    }
+                                }
+                            }
+
+                            else -> {}
                         }
                     }
                 }
@@ -200,7 +199,7 @@ fun StoryItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column (
+            Column(
                 modifier = Modifier.width(34.dp)
             ) {
                 Text(

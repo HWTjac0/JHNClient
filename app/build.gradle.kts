@@ -87,4 +87,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.material3.adaptive.navigation3)
     implementation(libs.kotlinx.serialization.core)
+
+    val paging_version = "3.4.2"
+
+    implementation("androidx.paging:paging-runtime:$paging_version")
+    // optional - Jetpack Compose integration
+    implementation("androidx.paging:paging-compose:3.5.0-alpha01")
 }

@@ -58,6 +58,6 @@ class StoryPagingSource(
             )
         } catch (e: Exception){
             LoadResult.Error(e)
-            }
+        }
     }
 }

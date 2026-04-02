@@ -122,6 +122,7 @@ fun MainScreen(
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { value ->
                                         if (value == SwipeToDismissBoxValue.StartToEnd) {
+                                            viewModel.saveStory(story)
                                         }
                                         false
                                     }

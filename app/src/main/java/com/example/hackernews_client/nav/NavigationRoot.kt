@@ -22,16 +22,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.example.hackernews_client.repository.SavedStoryRepository
 import com.example.hackernews_client.screens.MainScreen
 import com.example.hackernews_client.screens.SavedScreen
 import com.example.hackernews_client.screens.SearchScreen
 import com.example.hackernews_client.screens.SettingsScreen
 import com.example.hackernews_client.screens.StoryDetailScreen
 import com.example.hackernews_client.ui.theme.AppTheme
+import com.example.hackernews_client.viemodels.MainViewModel
+import com.example.hackernews_client.viemodels.SavedViewModel
+import com.example.hackernews_client.viemodels.SearchViewModel
 import kotlinx.serialization.Serializable
 
 interface TopLevelDestination {
@@ -70,6 +77,7 @@ sealed interface  Screen : NavKey {
 
 @Composable
 fun NavigationRoot(
+    repository: SavedStoryRepository,
     currentTheme: AppTheme,
     onThemeChange: (AppTheme) -> Unit,
     modifier: Modifier = Modifier
@@ -80,6 +88,20 @@ fun NavigationRoot(
     val showBottomBar = backStack.last() in destinations
     var previousScreen by remember { mutableStateOf(backStack.last()) }
     val currentScreen = backStack.last()
+
+    val viewModelFactory = remember(repository) {
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return when {
+                    modelClass.isAssignableFrom(MainViewModel::class.java) -> MainViewModel(repository) as T
+                    modelClass.isAssignableFrom(SavedViewModel::class.java) -> SavedViewModel(repository) as T
+                    modelClass.isAssignableFrom(SearchViewModel::class.java) -> SearchViewModel() as T
+                    else -> throw IllegalArgumentException("Unknown ViewModel class")
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         bottomBar = {
@@ -104,6 +126,7 @@ fun NavigationRoot(
             entryProvider = entryProvider {
                 entry<Screen.Main> {
                     MainScreen(
+                        viewModel = viewModel(factory = viewModelFactory),
                         onStoryClick = { storyId ->
                             backStack.add(Screen.StoryDetail(storyId))
                         }
@@ -111,12 +134,20 @@ fun NavigationRoot(
                 }
                 entry<Screen.Search> {
                     SearchScreen(
+                        viewModel = viewModel(factory = viewModelFactory),
                         onStoryClick = { storyId ->
                             backStack.add(Screen.StoryDetail(storyId))
                         }
                     )
                 }
-                entry<Screen.Saved> { SavedScreen() }
+                entry<Screen.Saved> { 
+                    SavedScreen(
+                        viewModel = viewModel(factory = viewModelFactory),
+                        onStoryClick = { storyId ->
+                            backStack.add(Screen.StoryDetail(storyId))
+                        }
+                    ) 
+                }
                 entry<Screen.Settings> { 
                     SettingsScreen(
                         currentTheme = currentTheme,
@@ -160,4 +191,3 @@ fun NavigationRoot(
     }
 
 }
-

@@ -25,10 +25,13 @@ class SearchPagingSource(
 
         return try {
             val currentPage = params.key ?: 0
-            val response = if (sort == SearchSort.POPULARITY) {
-                AlgoliaHN.service.search(query = query, page = currentPage)
-            } else {
-                AlgoliaHN.service.searchByDate(query = query, page = currentPage)
+            val response = when (sort) {
+                SearchSort.POPULARITY -> {
+                    AlgoliaHN.service.search(query = query, page = currentPage)
+                }
+                else -> {
+                    AlgoliaHN.service.searchByDate(query = query, page = currentPage)
+                }
             }
 
             val hasMore = response.page < response.nbPages - 1

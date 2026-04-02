@@ -13,14 +13,19 @@ import com.example.hackernews_client.screens.StoryType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: SavedStoryRepository) : ViewModel() {
     private val _selectedType = MutableStateFlow(StoryType.TOP)
     val selectedType: StateFlow<StoryType> = _selectedType.asStateFlow()
+
+    val allTags: StateFlow<List<String>> = repository.getAllTagNames()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val stories: Flow<PagingData<HNItem>> = _selectedType
@@ -41,14 +46,9 @@ class MainViewModel(private val repository: SavedStoryRepository) : ViewModel() 
         }
     }
 
-    fun saveStory(story: HNItem) {
+    fun saveStory(story: HNItem, tags: List<String>) {
         viewModelScope.launch {
-            val tag = when (_selectedType.value) {
-                StoryType.TOP -> "Top"
-                StoryType.NEW -> "New"
-                StoryType.JOBS -> "Job"
-            }
-            repository.saveStory(story, listOf(tag))
+            repository.saveStory(story, tags)
         }
     }
 }

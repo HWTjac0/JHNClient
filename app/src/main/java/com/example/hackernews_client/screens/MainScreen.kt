@@ -33,7 +33,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +45,8 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.example.hackernews_client.api.HNItem
+import com.example.hackernews_client.ui.StoryItem
+import com.example.hackernews_client.ui.TagInputDialog
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
 import com.example.hackernews_client.viemodels.MainViewModel
 import java.net.URL
@@ -62,6 +66,20 @@ fun MainScreen(
 ) {
     val items = viewModel.stories.collectAsLazyPagingItems()
     val selectedType by viewModel.selectedType.collectAsState()
+    val allTags by viewModel.allTags.collectAsState()
+
+    var storyToSave by remember { mutableStateOf<HNItem?>(null) }
+
+    if (storyToSave != null) {
+        TagInputDialog(
+            tags = allTags,
+            onConfirm = { tags ->
+                storyToSave?.let { viewModel.saveStory(it, tags) }
+                storyToSave = null
+            },
+            onDismiss = { storyToSave = null }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -122,7 +140,7 @@ fun MainScreen(
                                 val dismissState = rememberSwipeToDismissBoxState(
                                     confirmValueChange = { value ->
                                         if (value == SwipeToDismissBoxValue.StartToEnd) {
-                                            viewModel.saveStory(story)
+                                            storyToSave = story
                                         }
                                         false
                                     }
@@ -202,69 +220,5 @@ fun MainScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun StoryItem(
-    story: HNItem,
-    index: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val storyUrl = remember(story.url) {
-        try {
-            URL(story.url).host
-        } catch (e: Exception) {
-            ""
-        }
-    }
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 10.dp, vertical = 16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.width(34.dp)
-            ) {
-                Text(
-                    text = "${index + 1}.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = story.title ?: "No Title",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "By: ${story.by ?: "Unknown"} | Score: ${story.score ?: 0}${if (storyUrl.isNotEmpty()) " | $storyUrl" else ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            Column(
-                modifier = Modifier.width(75.dp),
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    text = "💬 ${story.kids?.size ?: 0}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-        HorizontalDivider(
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outlineVariant,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
     }
 }

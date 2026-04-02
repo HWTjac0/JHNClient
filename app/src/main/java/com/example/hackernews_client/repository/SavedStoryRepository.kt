@@ -8,6 +8,7 @@ import com.example.hackernews_client.database.SavedStory
 import com.example.hackernews_client.database.SavedStoryDao
 import com.example.hackernews_client.database.Tag
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class SavedStoryRepository(private val savedStoryDao: SavedStoryDao) {
 
@@ -37,7 +38,9 @@ class SavedStoryRepository(private val savedStoryDao: SavedStoryDao) {
         savedStoryDao.deleteStory(storyId)
     }
 
-    fun isStorySaved(storyId: Int): Flow<Boolean> {
-        return savedStoryDao.isStorySaved(storyId)
+    fun getAllTagNames(): Flow<List<String>> {
+        return savedStoryDao.getAllTags().map { tags ->
+            tags.map { it.name }
+        }
     }
 }

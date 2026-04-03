@@ -1,6 +1,7 @@
 package com.example.hackernews_client.screens
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,11 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.example.hackernews_client.R
 import com.example.hackernews_client.api.HNItem
 import com.example.hackernews_client.ui.StoryItem
 import com.example.hackernews_client.ui.TagInputDialog
@@ -51,10 +54,10 @@ import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
 import com.example.hackernews_client.viemodels.MainViewModel
 import java.net.URL
 
-enum class StoryType(val label: String) {
-    TOP("Top Stories"),
-    NEW("New Stories"),
-    JOBS("Job Stories")
+enum class StoryType(@StringRes val label: Int) {
+    TOP(R.string.top_stories),
+    NEW(R.string.new_stories),
+    JOBS(R.string.job_stories)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,7 +89,7 @@ fun MainScreen(
             TopAppBar(
                 title = {
                     ExposedDropdownMenu(
-                        options = StoryType.entries.map { it.label },
+                        options = StoryType.entries.map { stringResource(it.label) },
                         selectedIndex = StoryType.entries.indexOf(selectedType),
                         onSelected = { index ->
                             viewModel.onTypeSelected(StoryType.entries[index])
@@ -114,7 +117,7 @@ fun MainScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = error.error.localizedMessage ?: "Unknown error",
+                            text = error.error.localizedMessage ?: stringResource(R.string.unknown_error),
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
@@ -122,7 +125,7 @@ fun MainScreen(
                             onClick = { items.retry() },
                             modifier = Modifier.padding(top = 16.dp)
                         ) {
-                            Text("Retry")
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 }
@@ -200,7 +203,7 @@ fun MainScreen(
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Text(
-                                            text = state.error.localizedMessage ?: "Error loading more",
+                                            text = state.error.localizedMessage ?: stringResource(R.string.error_loading_more),
                                             color = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.align(Alignment.CenterHorizontally)
                                         )
@@ -208,7 +211,7 @@ fun MainScreen(
                                             onClick = { items.retry() },
                                             modifier = Modifier.padding(top = 8.dp)
                                         ) {
-                                            Text("Retry")
+                                            Text(stringResource(R.string.retry))
                                         }
                                     }
                                 }

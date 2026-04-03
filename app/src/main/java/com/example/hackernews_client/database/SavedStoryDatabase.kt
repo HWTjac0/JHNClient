@@ -6,8 +6,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [SavedStory::class, Tag::class, StoryTag::class],
-    version = 1,
+    entities = [SavedStory::class, Tag::class, StoryTag::class, AppSetting::class],
+    version = 2,
+    exportSchema = false
 )
 abstract class SavedStoryDatabase : RoomDatabase() {
     abstract fun savedStoryDao(): SavedStoryDao
@@ -24,7 +25,7 @@ abstract class SavedStoryDatabase : RoomDatabase() {
                                 context.applicationContext,
                                 SavedStoryDatabase::class.java,
                                 DATABASE_NAME
-                            ).fallbackToDestructiveMigration(false)
+                            ).fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }
             }
         }

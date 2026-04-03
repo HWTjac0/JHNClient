@@ -33,9 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.example.hackernews_client.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -88,14 +90,14 @@ fun TagInputDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Save story with tags",
+                    text = stringResource(R.string.save_story_with_tags),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 if (allDisplayTags.isNotEmpty()) {
                     Text(
-                        text = "Select tags:",
+                        text = stringResource(R.string.select_tags),
                         style = MaterialTheme.typography.labelLarge
                     )
                     FlowRow(
@@ -123,13 +125,13 @@ fun TagInputDialog(
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Add new tag") },
+                    label = { Text(stringResource(R.string.add_new_tag)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     trailingIcon = {
                         if (text.isNotBlank()) {
                             IconButton(onClick = { addCustomTag() }) {
-                                Icon(Icons.Default.Add, contentDescription = "Add tag")
+                                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_tag))
                             }
                         }
                     },
@@ -142,7 +144,7 @@ fun TagInputDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
                     Button(
                         onClick = {
@@ -153,7 +155,7 @@ fun TagInputDialog(
                         },
                         enabled = text.isNotBlank() || selectedTags.isNotEmpty()
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 }
             }

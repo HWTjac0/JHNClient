@@ -55,7 +55,7 @@ class SavedViewModel(private val repository: SavedStoryRepository) : ViewModel()
         viewModelScope.launch {
             repository.deleteTag(name)
             if (_selectedTags.value.contains(name)) {
-                _selectedTags.value = _selectedTags.value - name
+                _selectedTags.value -= name
             }
         }
     }

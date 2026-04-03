@@ -46,7 +46,7 @@ class StoryDetailViewModel : ViewModel() {
     }
 
     private suspend fun fetchItemWithComments(id: Int, depth: Int): AlgoliaItem? = coroutineScope {
-        if (depth > 2) return@coroutineScope null
+        if (depth > 10) return@coroutineScope null
 
         val item = try {
             FirebaseHN.service.getItem(id)

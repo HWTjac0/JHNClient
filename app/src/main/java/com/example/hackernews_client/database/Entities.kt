@@ -23,3 +23,9 @@ data class Tag(@PrimaryKey val name: String)
     indices = [Index("tagName")]
 )
 data class StoryTag(val storyId: Int, val tagName: String)
+
+@Entity(tableName = "app_settings")
+data class AppSetting(
+    @PrimaryKey val key: String,
+    val value: String
+)

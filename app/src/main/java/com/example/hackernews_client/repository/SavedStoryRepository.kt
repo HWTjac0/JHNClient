@@ -4,6 +4,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.example.hackernews_client.api.HNItem
+import com.example.hackernews_client.database.AppSetting
 import com.example.hackernews_client.database.SavedStory
 import com.example.hackernews_client.database.SavedStoryDao
 import com.example.hackernews_client.database.Tag
@@ -50,5 +51,18 @@ class SavedStoryRepository(private val savedStoryDao: SavedStoryDao) {
 
     fun getTagsForStory(storyId: Int): Flow<List<String>> {
         return savedStoryDao.getTagsForStory(storyId)
+    }
+
+    // Settings
+    suspend fun saveSetting(key: String, value: String) {
+        savedStoryDao.saveSetting(AppSetting(key, value))
+    }
+
+    suspend fun getSetting(key: String): String? {
+        return savedStoryDao.getSetting(key)
+    }
+
+    fun getSettingFlow(key: String): Flow<String?> {
+        return savedStoryDao.getSettingFlow(key)
     }
 }

@@ -1,3 +1,29 @@
 <resources>
     <string name="app_name">hackernews_client</string>
+    <string name="job_stories">Job Stories</string>
+    <string name="new_stories">New Stories</string>
+    <string name="top_stories">Top Stories</string>
+    <string name="retry">Retry</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="error_loading_more">Error loading more</string>
+    <string name="error">Error</string>
+    <string name="loading">Loading...</string>
+    <string name="story">Story</string>
+    <string name="comments">Comments</string>
+    <string name="story_details">Story Details</string>
+    <string name="no_title">No Title</string>
+    <string name="by_points">By: %1$s | Points: %2$d</string>
+    <string name="deleted">[deleted]</string>
+    <string name="unknown">Unknown</string>
+    <string name="add_new_tag">Add new tag</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="add_tag">Add tag</string>
+    <string name="save_story_with_tags">Save story with tags</string>
+    <string name="select_tags">Select tags:</string>
+    <string name="nav_stories">Stories</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_saved">Saved</string>
+    <string name="navsettings">Settings</string>
+    <string name="theme">Theme</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.example.hackernews_client.nav
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -29,6 +30,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.example.hackernews_client.R
 import com.example.hackernews_client.repository.SavedStoryRepository
 import com.example.hackernews_client.screens.MainScreen
 import com.example.hackernews_client.screens.SavedScreen
@@ -39,40 +41,41 @@ import com.example.hackernews_client.ui.theme.AppTheme
 import com.example.hackernews_client.viemodels.MainViewModel
 import com.example.hackernews_client.viemodels.SavedViewModel
 import com.example.hackernews_client.viemodels.SearchViewModel
+import com.example.hackernews_client.viemodels.SettingsViewModel
 import kotlinx.serialization.Serializable
 
 interface TopLevelDestination {
-    val label: String
+    @get:StringRes
+    val label: Int
     val icon: ImageVector
 }
 @Serializable
 sealed interface  Screen : NavKey {
     @Serializable data object Main : Screen, TopLevelDestination {
-        override val label: String
-            get() = "Stories"
+        override val label: Int
+            get() = R.string.nav_stories
         override val icon: ImageVector
             get() = Icons.Default.Home
     }
     @Serializable data object Search : Screen, TopLevelDestination {
-        override val label: String
-            get() = "Search"
+        override val label: Int
+            get() = R.string.nav_search
         override val icon: ImageVector
             get() = Icons.Default.Search
     }
     @Serializable data object Saved : Screen, TopLevelDestination {
-        override val label: String
-            get() = "Saved"
+        override val label: Int
+            get() = R.string.nav_saved
         override val icon: ImageVector
             get() = Icons.Default.Favorite
     }
     @Serializable data object Settings : Screen, TopLevelDestination {
-        override val label: String
-            get() = "Settings"
+        override val label: Int
+            get() = R.string.navsettings
         override val icon: ImageVector
             get() = Icons.Default.Settings
     }
     @Serializable data class StoryDetail(val itemId: Int) : Screen
-    @Serializable data class WebView(val url: String) : Screen
 }
 
 @Composable
@@ -91,11 +94,13 @@ fun NavigationRoot(
 
     val viewModelFactory = remember(repository) {
         object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return when {
                     modelClass.isAssignableFrom(MainViewModel::class.java) -> MainViewModel(repository) as T
                     modelClass.isAssignableFrom(SavedViewModel::class.java) -> SavedViewModel(repository) as T
                     modelClass.isAssignableFrom(SearchViewModel::class.java) -> SearchViewModel() as T
+                    modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(repository) as T
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }
             }
@@ -120,13 +125,15 @@ fun NavigationRoot(
         }
     ) { innerPadding ->
         NavDisplay(
-            modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding),
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding),
             backStack = backStack,
             onBack = {backStack.removeLastOrNull()},
             entryProvider = entryProvider {
                 entry<Screen.Main> {
                     MainScreen(
-                        viewModel = viewModel(factory = viewModelFactory),
+                        viewModel = viewModel<MainViewModel>(factory = viewModelFactory),
                         onStoryClick = { storyId ->
                             backStack.add(Screen.StoryDetail(storyId))
                         }
@@ -134,7 +141,7 @@ fun NavigationRoot(
                 }
                 entry<Screen.Search> {
                     SearchScreen(
-                        viewModel = viewModel(factory = viewModelFactory),
+                        viewModel = viewModel<SearchViewModel>(),
                         onStoryClick = { storyId ->
                             backStack.add(Screen.StoryDetail(storyId))
                         }
@@ -142,7 +149,7 @@ fun NavigationRoot(
                 }
                 entry<Screen.Saved> { 
                     SavedScreen(
-                        viewModel = viewModel(factory = viewModelFactory),
+                        viewModel = viewModel<SavedViewModel>(factory = viewModelFactory),
                         onStoryClick = { storyId ->
                             backStack.add(Screen.StoryDetail(storyId))
                         }
@@ -150,6 +157,7 @@ fun NavigationRoot(
                 }
                 entry<Screen.Settings> { 
                     SettingsScreen(
+                        viewModel = viewModel<SettingsViewModel>(factory = viewModelFactory),
                         currentTheme = currentTheme,
                         onThemeChange = onThemeChange
                     ) 
@@ -163,8 +171,6 @@ fun NavigationRoot(
                 }
             },
             transitionSpec = {
-                // Slide in from right when navigating forward
-                Log.d("NavigationRoot", "previousScreen: $previousScreen, currentScreen: $currentScreen")
                 if (
                     currentScreen in destinations &&
                     destinations.indexOf(previousScreen) > destinations.indexOf(backStack.last())

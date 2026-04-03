@@ -72,4 +72,14 @@ interface SavedStoryDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM saved_stories WHERE id = :storyId)")
     fun isStorySaved(storyId: Int): Flow<Boolean>
+
+    // Settings
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveSetting(setting: AppSetting)
+
+    @Query("SELECT value FROM app_settings WHERE `key` = :key")
+    suspend fun getSetting(key: String): String?
+
+    @Query("SELECT value FROM app_settings WHERE `key` = :key")
+    fun getSettingFlow(key: String): Flow<String?>
 }

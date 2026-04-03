@@ -2,6 +2,7 @@ package com.example.hackernews_client.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -27,6 +29,9 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,7 +41,9 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import com.example.hackernews_client.database.SavedStory
+import com.example.hackernews_client.ui.TagInputDialog
 import com.example.hackernews_client.viemodels.SavedViewModel
+import kotlinx.coroutines.flow.flowOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +54,30 @@ fun SavedScreen(
 ) {
     val items = viewModel.savedStories.collectAsLazyPagingItems()
     val allTags by viewModel.allTags.collectAsState()
+    val allTagNames by viewModel.allTagNames.collectAsState()
     val selectedTags by viewModel.selectedTags.collectAsState()
+
+    var storyToEdit by remember { mutableStateOf<SavedStory?>(null) }
+    
+    val currentStoryTags by remember(storyToEdit) {
+        if (storyToEdit != null) {
+            viewModel.getTagsForStory(storyToEdit!!.id)
+        } else {
+            flowOf(emptyList())
+        }
+    }.collectAsState(initial = emptyList())
+
+    if (storyToEdit != null) {
+        TagInputDialog(
+            initialSelectedTags = currentStoryTags,
+            tags = allTagNames,
+            onConfirm = { tags ->
+                storyToEdit?.let { viewModel.updateStoryTags(it, tags) }
+                storyToEdit = null
+            },
+            onDismiss = { storyToEdit = null }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -70,7 +100,16 @@ fun SavedScreen(
                         FilterChip(
                             selected = selectedTags.contains(tag.name),
                             onClick = { viewModel.toggleTag(tag.name) },
-                            label = { Text(tag.name) },
+                            label = {
+                                Text(
+                                    tag.name,
+                                    modifier = Modifier
+                                        .combinedClickable(
+                                            onClick = { viewModel.toggleTag(tag.name) },
+                                            onLongClick = { viewModel.deleteTag(tag.name) }
+                                        )
+                                )
+                            },
                             modifier = Modifier.padding(end = 8.dp)
                         )
                     }
@@ -105,29 +144,50 @@ fun SavedScreen(
                                     if (story != null) {
                                         val dismissState = rememberSwipeToDismissBoxState(
                                             confirmValueChange = { value ->
-                                                if (value == SwipeToDismissBoxValue.EndToStart) {
-                                                    viewModel.deleteStory(story.id)
-                                                    true
-                                                } else {
-                                                    false
+                                                when (value) {
+                                                    SwipeToDismissBoxValue.EndToStart -> {
+                                                        viewModel.deleteStory(story.id)
+                                                        true
+                                                    }
+                                                    SwipeToDismissBoxValue.StartToEnd -> {
+                                                        storyToEdit = story
+                                                        false
+                                                    }
+                                                    else -> false
                                                 }
                                             }
                                         )
 
                                         SwipeToDismissBox(
                                             state = dismissState,
-                                            enableDismissFromStartToEnd = false,
                                             backgroundContent = {
-                                                val color = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart)
-                                                    MaterialTheme.colorScheme.errorContainer else Color.Transparent
+                                                val direction = dismissState.dismissDirection
+                                                val color = when (direction) {
+                                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                                    else -> Color.Transparent
+                                                }
+                                                val alignment = when (direction) {
+                                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                                    else -> Alignment.Center
+                                                }
+                                                val icon = when (direction) {
+                                                    SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+                                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Edit
+                                                    else -> null
+                                                }
+
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxSize()
                                                         .background(color)
                                                         .padding(horizontal = 20.dp),
-                                                    contentAlignment = Alignment.CenterEnd
+                                                    contentAlignment = alignment
                                                 ) {
-                                                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                                    if (icon != null) {
+                                                        Icon(icon, contentDescription = null)
+                                                    }
                                                 }
                                             }
                                         ) {

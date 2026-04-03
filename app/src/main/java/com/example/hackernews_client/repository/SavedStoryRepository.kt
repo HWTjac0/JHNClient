@@ -38,9 +38,17 @@ class SavedStoryRepository(private val savedStoryDao: SavedStoryDao) {
         savedStoryDao.deleteStory(storyId)
     }
 
+    suspend fun deleteTag(tagName: String) {
+        savedStoryDao.deleteTagWithReferences(tagName)
+    }
+
     fun getAllTagNames(): Flow<List<String>> {
         return savedStoryDao.getAllTags().map { tags ->
             tags.map { it.name }
         }
+    }
+
+    fun getTagsForStory(storyId: Int): Flow<List<String>> {
+        return savedStoryDao.getTagsForStory(storyId)
     }
 }

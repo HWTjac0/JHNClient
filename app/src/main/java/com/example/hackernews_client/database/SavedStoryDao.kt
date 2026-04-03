@@ -23,14 +23,35 @@ interface SavedStoryDao {
     @Transaction
     suspend fun saveWithTags(item: HNItem, tags: List<String>) {
         insertStory(SavedStory(item.id, item.title ?: "", item.url, item.by ?: "", item.score ?: 0))
+        // Najpierw usuwamy stare tagi dla tej historii
+        deleteStoryTags(item.id)
+        // Potem dodajemy nowe
         tags.forEach { tag ->
             insertTag(Tag(tag))
             insertStoryTag(StoryTag(item.id, tag))
         }
     }
 
+    @Query("DELETE FROM story_tags WHERE storyId = :storyId")
+    suspend fun deleteStoryTags(storyId: Int)
+
     @Query("DELETE FROM saved_stories WHERE id = :storyId")
     suspend fun deleteStory(storyId: Int)
+
+    @Query("DELETE FROM tags WHERE name = :tagName")
+    suspend fun deleteTag(tagName: String)
+
+    @Query("DELETE FROM story_tags WHERE tagName = :tagName")
+    suspend fun deleteStoryTagsByTag(tagName: String)
+
+    @Transaction
+    suspend fun deleteTagWithReferences(tagName: String) {
+        deleteStoryTagsByTag(tagName)
+        deleteTag(tagName)
+    }
+
+    @Query("SELECT tagName FROM story_tags WHERE storyId = :storyId")
+    fun getTagsForStory(storyId: Int): Flow<List<String>>
 
     @Query("""
         SELECT DISTINCT saved_stories.* FROM saved_stories

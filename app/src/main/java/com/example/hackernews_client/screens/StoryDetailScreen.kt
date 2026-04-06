@@ -1,6 +1,8 @@
 package com.example.hackernews_client.screens
 
 import android.text.Html
+import android.util.Log
+import android.view.textclassifier.TextLinks
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.TextView
@@ -43,7 +45,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.fromHtml
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hackernews_client.R
@@ -290,7 +299,6 @@ fun CommentThread(comment: HNItem, depth: Int) {
                     }
                 }.filter { !it.deleted && !it.dead }
             } catch (e: Exception) {
-                // Ignore errors
             } finally {
                 loadingChildren = false
             }
@@ -385,14 +393,19 @@ fun CommentItem(
 
 @Composable
 fun HtmlText(html: String) {
-    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
-    AndroidView(
-        factory = { context ->
-            TextView(context).apply {
-                setTextColor(textColor)
-                textSize = 14f
-            }
-        },
-        update = { it.text = Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT) }
+    val content = AnnotatedString.fromHtml(
+        html,
+        linkStyles = TextLinkStyles(
+            style = SpanStyle(
+                textDecoration = TextDecoration.Underline,
+                fontStyle = FontStyle.Italic,
+                color = MaterialTheme.colorScheme.primary
+            )
+        )
+    )
+    Text(
+        content,
+        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onSurface
     )
 }

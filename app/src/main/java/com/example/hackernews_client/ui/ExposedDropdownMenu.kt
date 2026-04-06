@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 @Composable
 fun ExposedDropdownMenu(
     options: List<String>,
+    isTransparent: Boolean = true,
     selectedIndex: Int,
     modifier: Modifier = Modifier,
     onSelected: (Int) -> Unit = {}

@@ -22,6 +22,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel()
 ) {
+    val themes = AppTheme.themes
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -40,10 +42,10 @@ fun SettingsScreen(
         )
 
         ExposedDropdownMenu(
-            options = AppTheme.entries.map { it.name },
-            selectedIndex = AppTheme.entries.indexOf(currentTheme),
+            options = themes.map { it.name },
+            selectedIndex = themes.indexOf(currentTheme),
             onSelected = { index ->
-                val selectedTheme = AppTheme.entries[index]
+                val selectedTheme = themes[index]
                 viewModel.saveTheme(selectedTheme)
                 onThemeChange(selectedTheme)
             }

@@ -13,10 +13,10 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(private val repository: AppRepository) : ViewModel() {
 
     val currentTheme: StateFlow<AppTheme> = repository.getSettingFlow("theme")
-        .map { value -> 
-            value?.let { AppTheme.valueOf(it) } ?: AppTheme.DEFAULT 
+        .map { value ->
+            AppTheme.fromName(value)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.DEFAULT)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.Default)
 
     fun saveTheme(theme: AppTheme) {
         viewModelScope.launch {

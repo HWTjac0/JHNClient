@@ -12,10 +12,20 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-enum class AppTheme {
-    DEFAULT, HACKER_NEWS, DEEP_BLUE, KANAGAWA
-}
+sealed class AppTheme(val name: String, val colorScheme: ColorScheme) {
+    object Default : AppTheme("Default", LightColorScheme)
+    object HackerNews : AppTheme("Hacker News", HNColorScheme)
+    object DeepBlue : AppTheme("Deep Blue", BlueColorScheme)
+    object Kanagawa : AppTheme("Kanagawa", KanagawaColorScheme)
+    object Solarized : AppTheme("Solarized Dark", SolarizedColorScheme)
+    object Nord : AppTheme("Nord", NordColorScheme)
+    object Darcula : AppTheme("Darcula", DarculaColorScheme)
 
+    companion object {
+        val themes = listOf(Default, HackerNews, DeepBlue, Kanagawa, Solarized, Nord, Darcula)
+        fun fromName(name: String?): AppTheme = themes.find { it.name == name } ?: Default
+    }
+}
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
@@ -54,29 +64,68 @@ private val KanagawaColorScheme = darkColorScheme(
     onSurface = KanagawaFg,
 )
 
+private val SolarizedColorScheme = darkColorScheme(
+    primary = SolarizedPrimary,
+    secondary = SolarizedSecondary,
+    background = SolarizedBg,
+    surface = SolarizedSurface,
+    onPrimary = androidx.compose.ui.graphics.Color.White,
+    onBackground = SolarizedFg,
+    onSurface = SolarizedFg,
+)
+
+private val NordColorScheme = darkColorScheme(
+    primary = NordPrimary,
+    secondary = NordSecondary,
+    background = NordBg,
+    surface = NordSurface,
+    onPrimary = NordBg,
+    onBackground = NordFg,
+    onSurface = NordFg,
+)
+
+private val DarculaColorScheme = darkColorScheme(
+    primary = DarculaPrimary,
+    secondary = DarculaSecondary,
+    background = DarculaBg,
+    surface = DarculaSurface,
+    onPrimary = DarculaBg,
+    onBackground = DarculaFg,
+    onSurface = DarculaFg,
+)
+
 @Composable
 fun Hackernews_clientTheme(
-    theme: AppTheme = AppTheme.DEFAULT,
+    theme: AppTheme = AppTheme.Default,
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (theme) {
-        AppTheme.HACKER_NEWS -> HNColorScheme
-        AppTheme.DEEP_BLUE -> BlueColorScheme
-        AppTheme.KANAGAWA -> KanagawaColorScheme
-        AppTheme.DEFAULT -> {
-            when {
-                dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                    val context = LocalContext.current
-                    if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-                }
-                darkTheme -> DarkColorScheme
-                else -> LightColorScheme
-            }
+    val colorScheme = theme.let {
+        if (it == AppTheme.Default
+            && dynamicColor
+            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+           val context = LocalContext.current
+           if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+           it.colorScheme
         }
-    }
+    };
+//    when (theme) {
+//        AppTheme.HACKER_NEWS -> HNColorScheme
+//        AppTheme.DEEP_BLUE -> BlueColorScheme
+//        AppTheme.KANAGAWA -> KanagawaColorScheme
+//        AppTheme.DEFAULT -> {
+//            when {
+//                dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+//                    val context = LocalContext.current
+//                    if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+//                }
+//                darkTheme -> DarkColorScheme
+//                else -> LightColorScheme
+//            }
+//        }
+//    }
 
     MaterialTheme(
         colorScheme = colorScheme,

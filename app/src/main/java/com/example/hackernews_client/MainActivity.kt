@@ -26,9 +26,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val savedThemeName by repository.getSettingFlow("theme").collectAsState(initial = null)
-            val currentTheme = savedThemeName?.let { 
-                try { AppTheme.valueOf(it) } catch (e: Exception) { AppTheme.DEFAULT }
-            } ?: AppTheme.DEFAULT
+            val currentTheme = AppTheme.fromName(savedThemeName)
             
             val scope = rememberCoroutineScope()
             

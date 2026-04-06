@@ -10,22 +10,22 @@ import androidx.room.RoomDatabase
     version = 2,
     exportSchema = false
 )
-abstract class SavedStoryDatabase : RoomDatabase() {
-    abstract fun savedStoryDao(): SavedStoryDao
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun savedStoryDao(): AppDbDao
 
     companion object {
         const val DATABASE_NAME = "saved_stories_database"
 
         @Volatile
-        private var INSTANCE: SavedStoryDatabase? = null
+        private var INSTANCE: AppDatabase? = null
 
-        fun getDatabase(context: Context): SavedStoryDatabase {
+        fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
                                 context.applicationContext,
-                                SavedStoryDatabase::class.java,
+                                AppDatabase::class.java,
                                 DATABASE_NAME
-                            ).fallbackToDestructiveMigration()
+                ).fallbackToDestructiveMigration()
                     .build().also { INSTANCE = it }
             }
         }

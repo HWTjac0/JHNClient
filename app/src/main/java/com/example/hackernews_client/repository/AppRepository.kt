@@ -6,14 +6,14 @@ import androidx.paging.PagingData
 import com.example.hackernews_client.api.HNItem
 import com.example.hackernews_client.database.AppSetting
 import com.example.hackernews_client.database.SavedStory
-import com.example.hackernews_client.database.SavedStoryDao
+import com.example.hackernews_client.database.AppDbDao
 import com.example.hackernews_client.database.Tag
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class SavedStoryRepository(private val savedStoryDao: SavedStoryDao) {
+class AppRepository(private val appDbDao: AppDbDao) {
 
-    val allTags: Flow<List<Tag>> = savedStoryDao.getAllTags()
+    val allTags: Flow<List<Tag>> = appDbDao.getAllTags()
 
     fun getSavedStoriesPaging(tags: List<String>): Flow<PagingData<SavedStory>> {
         return Pager(
@@ -23,46 +23,46 @@ class SavedStoryRepository(private val savedStoryDao: SavedStoryDao) {
             ),
             pagingSourceFactory = {
                 if (tags.isEmpty()) {
-                    savedStoryDao.getAllStoriesPaging()
+                    appDbDao.getAllStoriesPaging()
                 } else {
-                    savedStoryDao.getStoriesByTags(tags)
+                    appDbDao.getStoriesByTags(tags)
                 }
             }
         ).flow
     }
 
     suspend fun saveStory(item: HNItem, tags: List<String>) {
-        savedStoryDao.saveWithTags(item, tags)
+        appDbDao.saveWithTags(item, tags)
     }
 
     suspend fun deleteStory(storyId: Int) {
-        savedStoryDao.deleteStory(storyId)
+        appDbDao.deleteStory(storyId)
     }
 
     suspend fun deleteTag(tagName: String) {
-        savedStoryDao.deleteTagWithReferences(tagName)
+        appDbDao.deleteTagWithReferences(tagName)
     }
 
     fun getAllTagNames(): Flow<List<String>> {
-        return savedStoryDao.getAllTags().map { tags ->
+        return appDbDao.getAllTags().map { tags ->
             tags.map { it.name }
         }
     }
 
     fun getTagsForStory(storyId: Int): Flow<List<String>> {
-        return savedStoryDao.getTagsForStory(storyId)
+        return appDbDao.getTagsForStory(storyId)
     }
 
     // Settings
     suspend fun saveSetting(key: String, value: String) {
-        savedStoryDao.saveSetting(AppSetting(key, value))
+        appDbDao.saveSetting(AppSetting(key, value))
     }
 
     suspend fun getSetting(key: String): String? {
-        return savedStoryDao.getSetting(key)
+        return appDbDao.getSetting(key)
     }
 
     fun getSettingFlow(key: String): Flow<String?> {
-        return savedStoryDao.getSettingFlow(key)
+        return appDbDao.getSettingFlow(key)
     }
 }

@@ -6,6 +6,7 @@ import android.webkit.WebViewClient
 import android.widget.TextView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,7 +47,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hackernews_client.R
-import com.example.hackernews_client.api.AlgoliaItem
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.example.hackernews_client.api.FirebaseHN
+import com.example.hackernews_client.api.HNItem
+import kotlinx.coroutines.flow.Flow
 import com.example.hackernews_client.viemodels.StoryDetailUiState
 import com.example.hackernews_client.viemodels.StoryDetailViewModel
 
@@ -111,10 +116,13 @@ fun StoryDetailScreen(
         }
         is StoryDetailUiState.Success -> {
             val story = state.story
+            val commentsFlow by viewModel.commentsFlow.collectAsState()
+            val lazyComments = commentsFlow.collectAsLazyPagingItems()
+
             if (!story.url.isNullOrBlank()) {
-                StoryWithWebView(story = story, onBack = onBack)
+                StoryWithWebView(story = story, lazyComments = lazyComments, onBack = onBack)
             } else {
-                StoryOnlyComments(story = story, onBack = onBack)
+                StoryOnlyComments(story = story, lazyComments = lazyComments, onBack = onBack)
             }
         }
     }
@@ -122,7 +130,11 @@ fun StoryDetailScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StoryWithWebView(story: AlgoliaItem, onBack: () -> Unit) {
+fun StoryWithWebView(
+    story: HNItem,
+    lazyComments: LazyPagingItems<HNItem>,
+    onBack: () -> Unit
+) {
     var webView: WebView? by remember { mutableStateOf(null) }
     var canGoBack by remember { mutableStateOf(false) }
 
@@ -167,8 +179,10 @@ fun StoryWithWebView(story: AlgoliaItem, onBack: () -> Unit) {
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
-                items(story.children) { comment ->
-                    CommentThread(comment, depth = 0)
+                items(lazyComments.itemCount) { index ->
+                    lazyComments[index]?.let { comment ->
+                        CommentThread(comment, depth = 0)
+                    }
                 }
             }
         }
@@ -195,7 +209,11 @@ fun StoryWithWebView(story: AlgoliaItem, onBack: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StoryOnlyComments(story: AlgoliaItem, onBack: () -> Unit) {
+fun StoryOnlyComments(
+    story: HNItem,
+    lazyComments: LazyPagingItems<HNItem>,
+    onBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -221,15 +239,17 @@ fun StoryOnlyComments(story: AlgoliaItem, onBack: () -> Unit) {
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
-            items(story.children) { comment ->
-                CommentThread(comment, depth = 0)
+            items(lazyComments.itemCount) { index ->
+                lazyComments[index]?.let { comment ->
+                    CommentThread(comment, depth = 0)
+                }
             }
         }
     }
 }
 
 @Composable
-fun StoryHeader(story: AlgoliaItem, showDivider: Boolean = true) {
+fun StoryHeader(story: HNItem, showDivider: Boolean = true) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -238,7 +258,7 @@ fun StoryHeader(story: AlgoliaItem, showDivider: Boolean = true) {
         Text(text = story.title ?: stringResource(R.string.no_title), style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = stringResource(R.string.by_points, story.author ?: stringResource(R.string.unknown), story.points ?: 0),
+            text = stringResource(R.string.by_points, story.by ?: stringResource(R.string.unknown), story.score ?: 0),
             style = MaterialTheme.typography.bodySmall
         )
         if (!story.text.isNullOrEmpty()) {
@@ -253,17 +273,64 @@ fun StoryHeader(story: AlgoliaItem, showDivider: Boolean = true) {
 }
 
 @Composable
-fun CommentThread(comment: AlgoliaItem, depth: Int) {
+fun CommentThread(comment: HNItem, depth: Int) {
+    var expanded by remember(comment.id) { mutableStateOf(depth < 2) }
+    var children by remember { mutableStateOf<List<HNItem>>(emptyList()) }
+    var loadingChildren by remember { mutableStateOf(false) }
+
+    LaunchedEffect(expanded) {
+        if (expanded && children.isEmpty() && !comment.kids.isNullOrEmpty()) {
+            loadingChildren = true
+            try {
+                children = comment.kids.mapNotNull { id ->
+                    try {
+                        FirebaseHN.service.getItem(id)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }.filter { !it.deleted && !it.dead }
+            } catch (e: Exception) {
+                // Ignore errors
+            } finally {
+                loadingChildren = false
+            }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
-        CommentItem(comment = comment, depth = depth)
-        comment.children.forEach { child ->
-            CommentThread(comment = child, depth = depth + 1)
+        CommentItem(
+            comment = comment,
+            depth = depth,
+            hasChildren = !comment.kids.isNullOrEmpty(),
+            isExpanded = expanded,
+            onToggleExpand = { expanded = !expanded }
+        )
+        if (expanded) {
+            if (loadingChildren) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(start = (depth * 12 + 24).dp, top = 8.dp, bottom = 8.dp)
+                        .height(20.dp)
+                        .width(20.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                children.forEach { child ->
+                    CommentThread(comment = child, depth = depth + 1)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun CommentItem(comment: AlgoliaItem, depth: Int) {
+fun CommentItem(
+    comment: HNItem,
+    depth: Int,
+    hasChildren: Boolean,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
+) {
     val indent = (depth * 12).dp
     Row(
         modifier = Modifier
@@ -287,11 +354,24 @@ fun CommentItem(comment: AlgoliaItem, depth: Int) {
         }
         
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = comment.author ?: stringResource(R.string.unknown),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable(enabled = hasChildren) { onToggleExpand() }
+            ) {
+                Text(
+                    text = comment.by ?: stringResource(R.string.unknown),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                if (hasChildren) {
+                    Text(
+                        text = if (isExpanded) "[-]" else "[+]",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
             HtmlText(html = comment.text ?: stringResource(R.string.deleted))
             HorizontalDivider(

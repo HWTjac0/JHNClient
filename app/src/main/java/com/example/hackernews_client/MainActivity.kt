@@ -8,9 +8,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import com.example.hackernews_client.api.ApiClient
-import com.example.hackernews_client.database.SavedStoryDatabase
+import com.example.hackernews_client.database.AppDatabase
 import com.example.hackernews_client.nav.NavigationRoot
-import com.example.hackernews_client.repository.SavedStoryRepository
+import com.example.hackernews_client.repository.AppRepository
 import com.example.hackernews_client.ui.theme.AppTheme
 import com.example.hackernews_client.ui.theme.Hackernews_clientTheme
 import kotlinx.coroutines.launch
@@ -20,8 +20,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         ApiClient.init(this)
         
-        val database = SavedStoryDatabase.getDatabase(this)
-        val repository = SavedStoryRepository(database.savedStoryDao())
+        val appDatabase = AppDatabase.getDatabase(this)
+        val repository = AppRepository(appDatabase.savedStoryDao())
         
         enableEdgeToEdge()
         setContent {

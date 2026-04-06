@@ -1,8 +1,6 @@
 package com.example.hackernews_client.nav
 
-import android.util.Log
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -17,7 +15,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,7 +28,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.hackernews_client.R
-import com.example.hackernews_client.repository.SavedStoryRepository
+import com.example.hackernews_client.repository.AppRepository
 import com.example.hackernews_client.screens.MainScreen
 import com.example.hackernews_client.screens.SavedScreen
 import com.example.hackernews_client.screens.SearchScreen
@@ -80,7 +77,7 @@ sealed interface  Screen : NavKey {
 
 @Composable
 fun NavigationRoot(
-    repository: SavedStoryRepository,
+    repository: AppRepository,
     currentTheme: AppTheme,
     onThemeChange: (AppTheme) -> Unit,
     modifier: Modifier = Modifier

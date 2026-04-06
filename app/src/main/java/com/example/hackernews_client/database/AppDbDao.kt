@@ -10,7 +10,7 @@ import com.example.hackernews_client.api.HNItem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface SavedStoryDao {
+interface AppDbDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStory(story: SavedStory)
 

@@ -5,12 +5,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hackernews_client.api.AlgoliaItem
 import com.example.hackernews_client.api.FirebaseHN
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.example.hackernews_client.api.HNItem
+import com.example.hackernews_client.paging.CommentPagingSource
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -18,7 +23,7 @@ import java.util.Locale
 
 sealed interface StoryDetailUiState {
     object Loading : StoryDetailUiState
-    data class Success(val story: AlgoliaItem) : StoryDetailUiState
+    data class Success(val story: HNItem) : StoryDetailUiState
     data class Error(val message: String) : StoryDetailUiState
 }
 
@@ -26,15 +31,25 @@ class StoryDetailViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<StoryDetailUiState>(StoryDetailUiState.Loading)
     val uiState: StateFlow<StoryDetailUiState> = _uiState.asStateFlow()
 
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+    private val _commentsFlow = MutableStateFlow<Flow<PagingData<HNItem>>>(emptyFlow())
+    val commentsFlow: StateFlow<Flow<PagingData<HNItem>>> = _commentsFlow.asStateFlow()
 
     fun loadStoryDetail(storyId: Int) {
         viewModelScope.launch {
             _uiState.value = StoryDetailUiState.Loading
             try {
-                val story = fetchItemWithComments(storyId, 0)
+                val story = FirebaseHN.service.getItem(storyId)
                 if (story != null) {
                     _uiState.value = StoryDetailUiState.Success(story)
+                    
+                    if (!story.kids.isNullOrEmpty()) {
+                        _commentsFlow.value = Pager(
+                            config = PagingConfig(pageSize = 20, enablePlaceholders = false),
+                            pagingSourceFactory = { CommentPagingSource(story.kids) }
+                        ).flow.cachedIn(viewModelScope)
+                    } else {
+                        _commentsFlow.value = emptyFlow()
+                    }
                 } else {
                     _uiState.value = StoryDetailUiState.Error("Failed to load story details")
                 }
@@ -43,31 +58,5 @@ class StoryDetailViewModel : ViewModel() {
                 _uiState.value = StoryDetailUiState.Error("Failed to load story details")
             }
         }
-    }
-
-    private suspend fun fetchItemWithComments(id: Int, depth: Int): AlgoliaItem? = coroutineScope {
-        if (depth > 10) return@coroutineScope null
-
-        val item = try {
-            FirebaseHN.service.getItem(id)
-        } catch (e: Exception) {
-            null
-        } ?: return@coroutineScope null
-
-        val children = item.kids?.map { kidId ->
-            async { fetchItemWithComments(kidId, depth + 1) }
-        }?.awaitAll()?.filterNotNull() ?: emptyList()
-
-        AlgoliaItem(
-            id = item.id,
-            createdAt = item.time?.let { dateFormat.format(Date(it * 1000)) } ?: "",
-            author = item.by,
-            title = item.title,
-            url = item.url,
-            text = item.text,
-            points = item.score,
-            parentId = item.parent,
-            children = children
-        )
     }
 }

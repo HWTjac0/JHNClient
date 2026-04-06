@@ -7,7 +7,7 @@ import androidx.paging.cachedIn
 import com.example.hackernews_client.api.HNItem
 import com.example.hackernews_client.database.SavedStory
 import com.example.hackernews_client.database.Tag
-import com.example.hackernews_client.repository.SavedStoryRepository
+import com.example.hackernews_client.repository.AppRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class SavedViewModel(private val repository: SavedStoryRepository) : ViewModel() {
+class SavedViewModel(private val repository: AppRepository) : ViewModel() {
 
     val allTags: StateFlow<List<Tag>> = repository.allTags
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

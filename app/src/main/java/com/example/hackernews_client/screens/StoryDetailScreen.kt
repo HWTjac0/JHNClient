@@ -48,6 +48,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextDecoration
@@ -403,9 +404,54 @@ fun HtmlText(html: String) {
             )
         )
     )
+
+    val builder = AnnotatedString.Builder(content)
+    val text = content.text
+
+    // quotes
+    val quoteRegex = Regex("(?m)^\\s*>.*$")
+    quoteRegex.findAll(text).forEach { result ->
+        builder.addStyle(
+            style = SpanStyle(
+                color = MaterialTheme.colorScheme.outline,
+                fontStyle = FontStyle.Italic
+            ),
+            start = result.range.first,
+            end = result.range.last + 1
+        )
+    }
+
+    // preformated code block
+    val codeBlockRegex = Regex("```[\\s\\S]*?```")
+    codeBlockRegex.findAll(text).forEach { result ->
+        builder.addStyle(
+            style = SpanStyle(
+                fontFamily = FontFamily.Monospace,
+                background = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            start = result.range.first,
+            end = result.range.last + 1
+        )
+    }
+
+    content.spanStyles.forEach { spanStyleRange ->
+        if (spanStyleRange.item.fontFamily == FontFamily.Monospace) {
+            builder.addStyle(
+                style = SpanStyle(
+                    background = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                start = spanStyleRange.start,
+                end = spanStyleRange.end
+            )
+        }
+    }
+
     Text(
-        content,
+        text = builder.toAnnotatedString(),
         fontSize = 14.sp,
+        lineHeight = 20.sp,
         color = MaterialTheme.colorScheme.onSurface
     )
 }

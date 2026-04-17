@@ -1,19 +1,25 @@
 package com.example.hackernews_client.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.hackernews_client.R
 import com.example.hackernews_client.api.HNItem
 import java.net.URL
 
@@ -65,10 +71,16 @@ fun StoryItem(
             }
             Column(
                 modifier = Modifier.width(75.dp),
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
             ) {
+                Icon(
+                   painter = painterResource(id = R.drawable.comment),
+                    contentDescription = "Comments",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
-                    text = "💬 ${story.kids?.size ?: 0}",
+                    text = "${story.kids?.size ?: 0}",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

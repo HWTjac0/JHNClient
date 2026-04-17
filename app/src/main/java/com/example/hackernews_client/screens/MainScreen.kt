@@ -28,6 +28,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -99,14 +100,18 @@ fun MainScreen(
             )
         }
     ) { padding ->
-        Box(
+        PullToRefreshBox(
+            isRefreshing = items.loadState.refresh is LoadState.Loading,
+            onRefresh = { items.refresh() },
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
         ) {
             when (items.loadState.refresh) {
                 is LoadState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    // PullToRefreshBox handles the loading indicator,
+                    // but we can still keep the center indicator for initial load if preferred.
+                    // Or just let PullToRefreshBox do its work.
                 }
 
                 is LoadState.Error -> {

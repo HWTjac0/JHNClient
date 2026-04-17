@@ -26,4 +26,5 @@
     <string name="nav_saved">Saved</string>
     <string name="navsettings">Settings</string>
     <string name="theme">Theme</string>
+    <string name="show_favicons">Show favicons</string>
 </resources>

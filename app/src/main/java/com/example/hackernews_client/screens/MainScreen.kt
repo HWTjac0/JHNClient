@@ -72,6 +72,7 @@ fun MainScreen(
     val items = viewModel.stories.collectAsLazyPagingItems()
     val selectedType by viewModel.selectedType.collectAsState()
     val allTags by viewModel.allTags.collectAsState()
+    val showFavicon by viewModel.showFavicon.collectAsState()
 
     var storyToSave by remember { mutableStateOf<HNItem?>(null) }
 
@@ -180,6 +181,7 @@ fun MainScreen(
                                     StoryItem(
                                         story = story,
                                         index = index,
+                                        showFavicon = showFavicon,
                                         onClick = { onStoryClick(story.id) },
                                         modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                     )

@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.hackernews_client.R
 import com.example.hackernews_client.api.HNItem
 import java.net.URL
@@ -32,6 +33,7 @@ import java.net.URL
 fun StoryItem(
     story: HNItem,
     index: Int,
+    showFavicon: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -56,10 +58,21 @@ fun StoryItem(
             Column(
                 modifier = Modifier.width(34.dp)
             ) {
-                Text(
-                    text = "${index + 1}.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                if (showFavicon && story.url != null) {
+                    val faviconUrl = "https://www.google.com/s2/favicons?sz=64&domain=${storyUrl}"
+                    AsyncImage(
+                        model = faviconUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                } else {
+                    Text(
+                        text = "${index + 1}.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             }
             Column(
                 modifier = Modifier.weight(1f)

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -26,6 +27,10 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
 
     val allTags: StateFlow<List<String>> = repository.getAllTagNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val showFavicon: StateFlow<Boolean> = repository.getSettingFlow("show_favicon")
+        .map { it?.toBoolean() ?: true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val stories: Flow<PagingData<HNItem>> = _selectedType

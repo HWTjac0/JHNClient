@@ -18,9 +18,19 @@ class SettingsViewModel(private val repository: AppRepository) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.Default)
 
+    val showFavicon: StateFlow<Boolean> = repository.getSettingFlow("show_favicon")
+        .map { it?.toBoolean() ?: true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     fun saveTheme(theme: AppTheme) {
         viewModelScope.launch {
             repository.saveSetting("theme", theme.name)
+        }
+    }
+
+    fun setShowFavicon(show: Boolean) {
+        viewModelScope.launch {
+            repository.saveSetting("show_favicon", show.toString())
         }
     }
 }

@@ -50,6 +50,7 @@ import androidx.paging.compose.itemKey
 import com.example.hackernews_client.R
 import com.example.hackernews_client.api.HNItem
 import com.example.hackernews_client.ui.StoryItem
+import com.example.hackernews_client.ui.StoryItemSkeleton
 import com.example.hackernews_client.ui.TagInputDialog
 import com.example.hackernews_client.ui.theme.ExposedDropdownMenu
 import com.example.hackernews_client.viemodels.MainViewModel
@@ -109,9 +110,11 @@ fun MainScreen(
         ) {
             when (items.loadState.refresh) {
                 is LoadState.Loading -> {
-                    // PullToRefreshBox handles the loading indicator,
-                    // but we can still keep the center indicator for initial load if preferred.
-                    // Or just let PullToRefreshBox do its work.
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(10) {
+                            StoryItemSkeleton()
+                        }
+                    }
                 }
 
                 is LoadState.Error -> {
@@ -186,15 +189,8 @@ fun MainScreen(
 
                         when (val state = items.loadState.append) {
                             is LoadState.Loading -> {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator()
-                                    }
+                                items(3) {
+                                    StoryItemSkeleton()
                                 }
                             }
 
